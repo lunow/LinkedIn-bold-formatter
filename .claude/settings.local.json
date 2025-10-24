@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node generate_png_icons.js:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
