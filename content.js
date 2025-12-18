@@ -64,6 +64,7 @@ function makeBold(element) {
  */
 function processBoldFormat() {
   const activeElement = document.activeElement;
+  console.log('Processing bold format, active element:', activeElement.tagName, activeElement.className);
 
   // Check if the active element is a textarea or contenteditable
   const isTextarea = activeElement.tagName === 'TEXTAREA';
@@ -71,21 +72,52 @@ function processBoldFormat() {
   const isContentEditable = activeElement.isContentEditable;
 
   if (isTextarea || isInput) {
+    console.log('Handling textarea/input');
     makeBold(activeElement);
   } else if (isContentEditable) {
-    // Handle contenteditable elements (some LinkedIn components use these)
+    console.log('Handling contenteditable element');
+    // Handle contenteditable elements (LinkedIn uses Quill editor)
     const selection = window.getSelection();
     if (selection.rangeCount > 0 && !selection.isCollapsed) {
-      const range = selection.getRangeAt(0);
-      const selectedText = range.toString();
+      const selectedText = selection.toString();
+      console.log('Selected text:', selectedText);
       const boldText = toBold(selectedText);
+      console.log('Bold text:', boldText);
 
-      range.deleteContents();
-      range.insertNode(document.createTextNode(boldText));
+      // Try using execCommand first - it's more compatible with rich text editors
+      const success = document.execCommand('insertText', false, boldText);
+      console.log('execCommand success:', success);
 
-      // Collapse selection to end
-      selection.collapseToEnd();
+      // Fallback to manual DOM manipulation if execCommand failed
+      if (!success) {
+        console.log('Using fallback manual DOM manipulation');
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+
+        // Insert the bold text as a text node
+        const textNode = document.createTextNode(boldText);
+        range.insertNode(textNode);
+
+        // Move cursor to end of inserted text
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        // Trigger input events for Quill to update
+        activeElement.dispatchEvent(new InputEvent('input', {
+          bubbles: true,
+          cancelable: true,
+          inputType: 'insertText',
+          data: boldText
+        }));
+        activeElement.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } else {
+      console.log('No text selected');
     }
+  } else {
+    console.log('Active element is not a textarea, input, or contenteditable');
   }
 }
 
@@ -101,21 +133,12 @@ function handleKeydown(event) {
     return;
   }
 
+  console.log('Bold keyboard shortcut detected');
   event.preventDefault();
   processBoldFormat();
 }
 
-// Listen for the Chrome command (customizable shortcut)
-if (chrome.runtime && chrome.runtime.onMessage) {
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'make-bold') {
-      processBoldFormat();
-      sendResponse({ success: true });
-    }
-  });
-}
-
-// Add event listener for keyboard shortcuts as fallback
+// Add event listener for keyboard shortcuts
 document.addEventListener('keydown', handleKeydown, true);
 
 console.log('LinkedIn Bold Formatter extension loaded');
