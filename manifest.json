@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Bold Formatter",
-  "version": "1.0.0",
+  "version": "1.1.7",
   "description": "Format selected text as bold in LinkedIn posts, comments, and messages using Cmd+B (Mac) or Ctrl+B (Windows)",
   "permissions": [],
   "content_scripts": [
     {
       "matches": ["*://*.linkedin.com/*"],
       "js": ["content.js"],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
   "icons": {
